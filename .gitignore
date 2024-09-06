@@ -1,0 +1,18 @@
+.idea/
+venv/
+.venv/
+
+# caches and such
+.DS_Store
+**/.DS_Store
+__pycache__
+**/__pycache__
+
+# bindings
+**/dist/
+*.egg-info/
+
+# env
+**/*.env
+
+excerpts
