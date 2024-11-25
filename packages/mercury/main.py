@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import time
 from typing import List
 
@@ -7,6 +8,8 @@ import requests
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from ratatosk_errands.model import Echo, Errand
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
 from mercury.discussant import Discussant
 from mercury.models.gpt import GPT
@@ -15,7 +18,22 @@ from mercury.models.hermes import Hermes
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
+
+class ApiKeyValidator(BaseHTTPMiddleware):
+    def __init__(self, app):
+        self.api_key = os.getenv("API_KEY")
+        super().__init__(app)
+
+    async def dispatch(self, request, call_next):
+        request_key = request.headers.get("x-api-key")
+        if request_key == self.api_key:
+            return await call_next(request)
+        else:
+            return JSONResponse(status_code=403, content={})
+
+
 app = FastAPI()
+app.add_middleware(ApiKeyValidator)
 discussant: Discussant | None = None
 
 
