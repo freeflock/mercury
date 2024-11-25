@@ -4,28 +4,34 @@ import time
 import uuid
 
 import requests
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from ratatosk_errands.model import Echo, ChatInstructions, Errand
-from transformers import AutoTokenizer
+
+from mercury.discussant import Discussant
+from mercury.models.hermes import Hermes
 
 logger = logging.getLogger("uvicorn.error")
 logger.setLevel(logging.INFO)
 
 app = FastAPI()
-
-tokenizer = AutoTokenizer.from_pretrained(
-    "NousResearch/Hermes-3-Llama-3.1-70B",
-    trust_remote_code=True)
-tokenizer.pad_token = tokenizer.eos_token
-tokenizer.padding_side = "left"
-messages = [
-    {"role": "system", "content": "hermes trismegistus"},
-]
+discussant: Discussant | None = None
 
 
-def kickoff_chat():
+class DiscussionRequest(BaseModel):
+    model: str = ""
+    system_prompt: str = ""
+
+
+@app.post("/discuss")
+def discuss(discussant_request: DiscussionRequest):
+    global discussant
+    if discussant_request.model == "hermes":
+        discussant = Hermes(system_prompt=discussant_request.system_prompt)
+    else:
+        raise HTTPException(status_code=400, detail=f"unknown model: {discussant_request.model}")
     instructions = ChatInstructions(
-        prompt=tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+        prompt=discussant.generate_prompt()
     )
     errand = Errand(
         instructions=instructions,
@@ -39,10 +45,11 @@ def kickoff_chat():
 
 @app.post("/receive_echo")
 def receive_echo(echo: Echo):
+    global discussant
     logger.info(f"(*) received echo: {json.dumps(echo.model_dump(), indent=4)}")
-    messages.append({"role": "assistant", "content": echo.reply.message})
+    discussant.add_message(echo.reply.message)
     instructions = ChatInstructions(
-        prompt=tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+        prompt=discussant.generate_prompt()
     )
     errand = Errand(
         instructions=instructions,
@@ -52,6 +59,3 @@ def receive_echo(echo: Echo):
         timestamp=time.time()
     )
     requests.post("http://errand_runner:33333/give_errand", json=errand.model_dump())
-
-
-kickoff_chat()

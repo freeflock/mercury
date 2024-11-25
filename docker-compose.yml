@@ -1,6 +1,8 @@
 services:
   mercury:
     image: josiahdc/mercury:0.1
+    ports:
+      - "33333:33333"
     build:
       context: .
     networks:
