@@ -7,6 +7,8 @@ services:
       context: .
     networks:
       - ratatosk_ratatosk
+    env_file:
+      - mercury.env
 
 networks:
   ratatosk_ratatosk:

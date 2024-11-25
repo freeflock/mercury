@@ -1,3 +1,3 @@
 from dotenv import load_dotenv
 
-load_dotenv("../hermes.env")
+load_dotenv("../mercury.env")
