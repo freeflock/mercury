@@ -17,19 +17,19 @@ def test_wrong_api_key():
     assert response.status_code == 403
 
 
-def test_hermes():
+def test_norn():
     headers = {"x-api-key": API_KEY}
-    payload = {"model": "hermes",
+    payload = {"dialog_type": "norn",
                "discussion_length": 2}
     response = requests.post("http://0.0.0.0:33333/discuss", headers=headers, json=payload)
     assert response.status_code == 200
 
 
-def test_gpt():
-    discussion_length = 2
+def test_discussant():
+    discussion_length = 6
     headers = {"x-api-key": API_KEY}
     payload = {
-        "model": "gpt",
+        "dialog_type": "discussant",
         "prompt_names": ["advocate_discussant", "critic_discussant"],
         "question": "What is the best color sock?",
         "context": "teal is a good sock color",

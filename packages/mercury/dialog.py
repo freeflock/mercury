@@ -1,13 +1,15 @@
 from abc import abstractmethod, ABC
 
+from ratatosk_errands.model import Echo
 
-class Discussant(ABC):
+
+class Dialog(ABC):
     @abstractmethod
-    def generate_instructions(self):
+    def start(self):
         pass
 
     @abstractmethod
-    def add_message(self, message):
+    def step(self, echo: Echo):
         pass
 
     @abstractmethod
