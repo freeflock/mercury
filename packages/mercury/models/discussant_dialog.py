@@ -2,7 +2,8 @@ import time
 import uuid
 
 import requests
-from ratatosk_errands.model import PromptTemplateInstructions, Errand, Echo
+from ratatosk_errands.model import PromptTemplateInstructions, Errand, Echo, ChatReply, DiscoveryReply, \
+    DiscoveryInstructions
 
 from mercury.dialog import Dialog
 
@@ -28,16 +29,32 @@ class DiscussantDialog(Dialog):
         requests.post("http://errand_runner:33333/give_errand", json=errand.model_dump())
 
     def step(self, echo: Echo):
-        self.messages.append(echo.reply.message)
-        if not self.finished():
-            errand = Errand(
-                instructions=self.advance_dialog(),
-                origin="mercury:33333",
-                destination="mercury:33333/receive_echo",
-                errand_identifier=self.get_identifier(),
-                timestamp=time.time()
-            )
-            requests.post("http://errand_runner:33333/give_errand", json=errand.model_dump())
+        if isinstance(echo.reply, ChatReply):
+            self.messages.append(echo.reply.message)
+            if not self.finished():
+                instructions = DiscoveryInstructions(message=echo.reply.message)
+                errand = Errand(
+                    instructions=instructions,
+                    origin="mercury:33333",
+                    destination="mercury:33333/receive_echo",
+                    errand_identifier=self.get_identifier(),
+                    timestamp=time.time()
+                )
+                requests.post("http://errand_runner:33333/give_errand", json=errand.model_dump())
+        elif isinstance(echo.reply, DiscoveryReply):
+            message = "Here is a list of discovery_results, each of which contains information collected from the web"
+            for result in echo.reply.discovery_result:
+                message += f"\n\n*discovery_result*\n{result}"
+            self.messages.append(message)
+            if not self.finished():
+                errand = Errand(
+                    instructions=self.advance_dialog(),
+                    origin="mercury:33333",
+                    destination="mercury:33333/receive_echo",
+                    errand_identifier=self.get_identifier(),
+                    timestamp=time.time()
+                )
+                requests.post("http://errand_runner:33333/give_errand", json=errand.model_dump())
 
     def advance_dialog(self):
         dialog = ""

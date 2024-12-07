@@ -26,7 +26,7 @@ def test_norn():
 
 
 def test_discussant():
-    discussion_length = 6
+    discussion_length = 4
     headers = {"x-api-key": API_KEY}
     payload = {
         "dialog_type": "discussant",
